@@ -2,6 +2,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UniRx;
 
 namespace UserControlSystem
 {
@@ -17,7 +18,7 @@ namespace UserControlSystem
 
         private void Start()
         {
-            _selectedValue.OnNewValue += ONSelected;
+            _selectedValue.ReactiveValue.Subscribe(selectable => ONSelected(selectable));
             ONSelected(_selectedValue.CurrentValue);
         }
         

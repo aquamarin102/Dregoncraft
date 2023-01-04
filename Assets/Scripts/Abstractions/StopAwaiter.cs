@@ -7,7 +7,7 @@ namespace Core
     {
         private readonly UnitMovementStop _unitMovementStop;
 
-        public StopAwaiter(UnitMovementStop unitMovementStop) : base()
+        public StopAwaiter(UnitMovementStop unitMovementStop)
         {
             _unitMovementStop = unitMovementStop;
             _unitMovementStop.OnStop += ONStop;
@@ -16,9 +16,7 @@ namespace Core
         private void ONStop()
         {
             _unitMovementStop.OnStop -= ONStop;
-            SetComleted();
+            ONWaitFinish(new AsyncExtensions.Void());
         }
-
-        public override AsyncExtensions.Void GetResult() => new AsyncExtensions.Void();
     }
 }
