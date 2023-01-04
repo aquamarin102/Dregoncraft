@@ -2,6 +2,7 @@
 using Abstractions;
 using Abstractions.Commands;
 using Abstractions.Commands.CommandsInterfaces;
+using UniRx;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UserControlSystem;
@@ -18,33 +19,24 @@ public sealed class MouseInteractionPresenter : MonoBehaviour
     [SerializeField] private Vector3Value _groundClicksRMB;
     [SerializeField] private AttackableValue _attackablesRMB;
     [SerializeField] private Transform _groundTransform;
-
-    private AutoCommand _autoCommand;
+    
     private Plane _groundPlane;
-    private CommandButtonsPresenter _commandButtonsPresenter;
 
-    private void Awake()
+    private void Start()
     {
-        _autoCommand = new AutoCommand();
-        _commandButtonsPresenter = FindObjectOfType<CommandButtonsPresenter>();
+        _groundPlane = new Plane(_groundTransform.up, 0);
+
+        var clickStream = Observable.EveryUpdate().Where(_ =>
+            (Input.GetMouseButtonUp(0) || Input.GetMouseButton(1)) && (!_eventSystem.IsPointerOverGameObject()));
+        
+        clickStream.Subscribe(EveryUpdate);
     }
 
-    private void Start() => _groundPlane = new Plane(_groundTransform.up, 0);
-
-    private void Update()
+    private void EveryUpdate(long frameCount)
     {
-        if (!Input.GetMouseButtonUp(0) && !Input.GetMouseButtonDown(1))
-        {
-            return;
-        }
-        
-        if (_eventSystem.IsPointerOverGameObject())
-        {
-            return;
-        }
-        
         var ray = _camera.ScreenPointToRay(Input.mousePosition);
         var hits = Physics.RaycastAll(ray);
+        
         if (Input.GetMouseButtonUp(0))
         {
             if (WeHit<ISelectable>(hits, out var selectable))
@@ -60,21 +52,11 @@ public sealed class MouseInteractionPresenter : MonoBehaviour
         {
             if (WeHit<IAttackable>(hits, out var attackable))
             {
-                if (!_autoCommand.AutoAttackUnit(_selectedObject.CurrentValue, attackable))
-                    _attackablesRMB.SetValue(attackable);
+                _attackablesRMB.SetValue(attackable);
             }
             else if (_groundPlane.Raycast(ray, out var enter))
             {
-                Vector3 newValue = ray.origin + ray.direction * enter;
-                if (_commandButtonsPresenter != null && _commandButtonsPresenter.CommandIsPending)
-                {
-                    _groundClicksRMB.SetValue(newValue);
-                }
-                else if (!_autoCommand.AutoMoveUnit(_selectedObject.CurrentValue, newValue))
-                {
-                    _groundClicksRMB.SetValue(newValue);
-                }
-                    
+                _groundClicksRMB.SetValue(ray.origin + ray.direction * enter);
             }
         }
     }

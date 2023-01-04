@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Abstractions;
 using Abstractions.Commands;
 using Abstractions.Commands.CommandsInterfaces;
+using UniRx;
 using UnityEngine;
 using UserControlSystem.CommandsRealization;
+using UserControlSystem.ModelCommand;
 using UserControlSystem.UI.View;
 using Utils;
 using Zenject;
@@ -17,16 +19,16 @@ namespace UserControlSystem.UI.Presenter
         [SerializeField] private CommandButtonsView _view;
         [Inject] private CommandButtonsModel _model;
         private ISelectable _currentSelectable;
-        public bool CommandIsPending => _model.CommandIsPending;
 
         private void Start()
         {
-            _view.OnClick += _model.OnCommandButtonClicked;
-            _model.OnCommandSent += _view.UnblockAllInteractions;
-            _model.OnCommandCancel += _view.UnblockAllInteractions;
-            _model.OnCommandAccepted += _view.BlockInteractions;
+            MessageBroker.Default.Receive<ICommandExecutor>().Subscribe(i => _model.OnCommandButtonClicked(i));
+            MessageBroker.Default.Receive<ModelOnCommandSent>().Subscribe(_ => _view.UnblockAllInteractions());
+            MessageBroker.Default.Receive<ModelOnCommandCancel>().Subscribe(_ => _view.UnblockAllInteractions());
+            MessageBroker.Default.Receive<ModelOnCommandAccepted>().Subscribe(command => _view.BlockInteractions(command.commandExecutor));
 
-            _selectable.OnNewValue += ONSelected;
+
+            _selectable.ReactiveValue.Subscribe(selectable => ONSelected(selectable));
             ONSelected(_selectable.CurrentValue);
         }
 

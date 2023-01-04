@@ -17,9 +17,7 @@ namespace Utils
                 if (obj.GetType().IsAssignableFrom(targetType))
                 {
                     if (targetName == null || obj.name == targetName)
-                    {
                         return obj;
-                    }    
                 }
             }
             return null;

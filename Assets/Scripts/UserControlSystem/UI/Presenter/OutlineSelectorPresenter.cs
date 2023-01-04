@@ -1,4 +1,5 @@
 using Abstractions;
+using UniRx;
 using UnityEngine;
 using UserControlSystem;
 
@@ -11,17 +12,14 @@ public class OutlineSelectorPresenter : MonoBehaviour
 
     private void Start()
     {
-        _selectableValue.OnNewValue += OnSelected;
+        _selectableValue.ReactiveValue.Subscribe(selectable => OnSelected(selectable));
     }
 
     private void OnSelected(ISelectable selectable)
     {
         if (_currentSelectable == selectable)
-        {
             return;
-        }
         
-
         SetSelected(_outlineSelectors, false);
         _outlineSelectors = null;
 
