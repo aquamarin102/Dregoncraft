@@ -7,7 +7,7 @@ namespace Core
         public override void InstallBindings()
         {
             Container.BindInterfacesAndSelfTo<TimeModel>().AsSingle();
-            Container.BindInterfacesAndSelfTo<PauseModel>().AsSingle();
+            Container.BindInterfacesAndSelfTo<ShiftModificatorModel>().AsSingle();
         }
     }
 }

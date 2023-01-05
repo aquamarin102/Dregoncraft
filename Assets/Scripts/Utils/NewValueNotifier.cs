@@ -1,12 +1,10 @@
-﻿using Utils;
-
-namespace UserControlSystem
+﻿namespace Utils
 {
     public class NewValueNotifier<TAwaited> : AwaiterBase<TAwaited>
     {
         private readonly ScriptableObjectValueBase<TAwaited> _scriptableObjectValueBase;
 
-        public NewValueNotifier(ScriptableObjectValueBase<TAwaited> scriptableObjectValueBase) : base()
+        public NewValueNotifier(ScriptableObjectValueBase<TAwaited> scriptableObjectValueBase)
         {
             _scriptableObjectValueBase = scriptableObjectValueBase;
             _scriptableObjectValueBase.OnNewValue += ONNewValue;

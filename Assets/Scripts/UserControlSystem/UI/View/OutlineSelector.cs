@@ -12,12 +12,18 @@ public sealed class OutlineSelector : MonoBehaviour
     public void SetSelected(bool isSelected)
     {
         if (isSelected == _isSelectedCache)
+        {
             return;
+        }
 
         if (isSelected)
+        {
             EnableOutline();
+        }
         else
+        {
             DisableOutline();
+        }
         
         _isSelectedCache = isSelected;
     }

@@ -1,19 +1,23 @@
 ﻿using System;
 using Abstractions.Commands;
 using Abstractions.Commands.CommandsInterfaces;
-using UniRx;
-using UserControlSystem.ModelCommand;
 using Zenject;
 
 namespace UserControlSystem
 {
     public sealed class CommandButtonsModel
     {
+        public event Action<ICommandExecutor> OnCommandAccepted;
+        public event Action OnCommandSent;
+        public event Action OnCommandCancel;
+
         [Inject] private CommandCreatorBase<IProduceUnitCommand> _unitProducer;
         [Inject] private CommandCreatorBase<IAttackCommand> _attacker;
         [Inject] private CommandCreatorBase<IStopCommand> _stopper;
         [Inject] private CommandCreatorBase<IMoveCommand> _mover;
         [Inject] private CommandCreatorBase<IPatrolCommand> _patroller;
+
+        [Inject] private ShiftModificatorModel _shiftModificatorModel;
 
         private bool _commandIsPending;
 
@@ -24,7 +28,7 @@ namespace UserControlSystem
                 processOnCancel();
             }
             _commandIsPending = true;
-            MessageBroker.Default.Publish(new ModelOnCommandAccepted(commandExecutor));
+            OnCommandAccepted?.Invoke(commandExecutor);
 
             _unitProducer.ProcessCommandExecutor(commandExecutor, command => ExecuteCommandWrapper(commandExecutor, command));
             _attacker.ProcessCommandExecutor(commandExecutor, command => ExecuteCommandWrapper(commandExecutor, command));
@@ -35,9 +39,24 @@ namespace UserControlSystem
 
         public void ExecuteCommandWrapper(ICommandExecutor commandExecutor, object command)
         {
-            commandExecutor.ExecuteCommand(command);
+            if (_shiftModificatorModel.IsShift)
+            {
+                if (!commandExecutor.AppendCommand(command))
+                {
+                    commandExecutor.ExecuteCommand(command);
+                }
+            }
+            else
+            {
+                commandExecutor.ResetQueue();
+                if (!commandExecutor.AppendCommand(command))
+                {
+                    commandExecutor.ExecuteCommand(command);
+                }
+            }
+
             _commandIsPending = false;
-            MessageBroker.Default.Publish(new ModelOnCommandSent());
+            OnCommandSent?.Invoke();
         }
 
         public void OnSelectionChanged()
@@ -54,7 +73,7 @@ namespace UserControlSystem
             _mover.ProcessCancel();
             _patroller.ProcessCancel();
 
-            MessageBroker.Default.Publish(new ModelOnCommandCancel());
+            OnCommandCancel?.Invoke();
         }
     }
 }

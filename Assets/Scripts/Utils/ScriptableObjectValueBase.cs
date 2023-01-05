@@ -1,8 +1,7 @@
 ﻿using System;
 using UnityEngine;
-using Utils;
 
-namespace UserControlSystem
+namespace Utils
 {
     public abstract class ScriptableObjectValueBase<T> : ScriptableObject, IAwaitable<T>
     {

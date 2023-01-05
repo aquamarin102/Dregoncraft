@@ -20,7 +20,7 @@ namespace Utils
             }
             return await originalTask;
         }
-
+        
         public static Task<TResult> AsTask<TResult>(this IAwaitable<TResult> awaitable) 
             => Task.Run(async () => await awaitable);
         

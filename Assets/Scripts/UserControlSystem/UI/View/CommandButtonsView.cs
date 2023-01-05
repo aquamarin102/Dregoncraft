@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Abstractions.Commands;
 using Abstractions.Commands.CommandsInterfaces;
-using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +10,8 @@ namespace UserControlSystem.UI.View
 {
     public sealed class CommandButtonsView : MonoBehaviour
     {
+        public Action<ICommandExecutor> OnClick;
+
         [SerializeField] private GameObject _attackButton;
         [SerializeField] private GameObject _moveButton;
         [SerializeField] private GameObject _patrolButton;
@@ -18,12 +19,9 @@ namespace UserControlSystem.UI.View
         [SerializeField] private GameObject _produceUnitButton;
 
         private Dictionary<Type, GameObject> _buttonsByExecutorType;
-        private List<IDisposable> _buttonObservables;
-        
+
         private void Start()
         {
-            _buttonObservables = new List<IDisposable>();
-
             _buttonsByExecutorType = new Dictionary<Type, GameObject>();
             _buttonsByExecutorType
                 .Add(typeof(CommandExecutorBase<IAttackCommand>), _attackButton);
@@ -61,9 +59,7 @@ namespace UserControlSystem.UI.View
                 var buttonGameObject = GETButtonGameObjectByType(currentExecutor.GetType());
                 buttonGameObject.SetActive(true);
                 var button = buttonGameObject.GetComponent<Button>();
-                
-                var buttonObservable = button.OnClickAsObservable().Subscribe(_ => MessageBroker.Default.Publish(currentExecutor));
-                _buttonObservables.Add(buttonObservable);
+                button.onClick.AddListener(() => OnClick?.Invoke(currentExecutor));
             }
         }
 
@@ -82,12 +78,6 @@ namespace UserControlSystem.UI.View
                     .GetComponent<Button>().onClick.RemoveAllListeners();
                 kvp.Value.SetActive(false);
             }
-            
-            foreach (var button_observable in _buttonObservables)
-            {
-                button_observable.Dispose();
-            }
-            _buttonObservables.Clear();
         }
     }
 }
