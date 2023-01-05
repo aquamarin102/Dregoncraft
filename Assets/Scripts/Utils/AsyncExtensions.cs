@@ -20,21 +20,7 @@ namespace Utils
             }
             return await originalTask;
         }
-
-        public static async Task WithCancellation(this Task originalTask, CancellationToken ct)
-        {
-            var cancelTask = new TaskCompletionSource<Void>();
-            using (ct.Register(t => ((TaskCompletionSource<Void>)t).TrySetResult(new Void()), cancelTask))
-            {
-                var any = await Task.WhenAny(originalTask, cancelTask.Task);
-                if (any == cancelTask.Task)
-                {
-                    ct.ThrowIfCancellationRequested();
-                }
-            }
-            await originalTask;
-        }
-
+        
         public static Task<TResult> AsTask<TResult>(this IAwaitable<TResult> awaitable) 
             => Task.Run(async () => await awaitable);
         

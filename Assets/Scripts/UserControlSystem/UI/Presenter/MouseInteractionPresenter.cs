@@ -1,12 +1,9 @@
 ﻿using System.Linq;
 using Abstractions;
-using Abstractions.Commands;
-using Abstractions.Commands.CommandsInterfaces;
+using UniRx;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UserControlSystem;
-using UserControlSystem.CommandsRealization;
-using UserControlSystem.UI.Presenter;
 using Zenject;
 
 public sealed class MouseInteractionPresenter : MonoBehaviour
@@ -19,66 +16,55 @@ public sealed class MouseInteractionPresenter : MonoBehaviour
     [SerializeField] private AttackableValue _attackablesRMB;
     [SerializeField] private Transform _groundTransform;
 
-    private AutoCommand _autoCommand;
+    [Inject] private ShiftModificatorModel _shiftModificatorModel;
+
     private Plane _groundPlane;
-    private CommandButtonsPresenter _commandButtonsPresenter;
 
-    private void Awake()
+    [Inject]
+    private void Init()
     {
-        _autoCommand = new AutoCommand();
-        _commandButtonsPresenter = FindObjectOfType<CommandButtonsPresenter>();
-    }
+        _groundPlane = new Plane(_groundTransform.up, 0);
 
-    private void Start() => _groundPlane = new Plane(_groundTransform.up, 0);
+        var nonBlockedByUiFramesStream = Observable.EveryUpdate()
+            .Where(_ => !_eventSystem.IsPointerOverGameObject());
 
-    private void Update()
-    {
-        if (!Input.GetMouseButtonUp(0) && !Input.GetMouseButtonDown(1))
-        {
-            return;
-        }
-        
-        if (_eventSystem.IsPointerOverGameObject())
-        {
-            return;
-        }
-        
-        var ray = _camera.ScreenPointToRay(Input.mousePosition);
-        var hits = Physics.RaycastAll(ray);
-        if (Input.GetMouseButtonUp(0))
+        var leftClicksStream = nonBlockedByUiFramesStream
+            .Where(_ => Input.GetMouseButtonDown(0));
+        var rightClicksStream = nonBlockedByUiFramesStream
+            .Where(_ => Input.GetMouseButtonDown(1));
+
+        var lmbRays = leftClicksStream
+            .Select(_ => _camera.ScreenPointToRay(Input.mousePosition));
+        var rmbRays = rightClicksStream
+            .Select(_ => _camera.ScreenPointToRay(Input.mousePosition));
+
+        var lmbHitsStream = lmbRays
+            .Select(ray => Physics.RaycastAll(ray));
+        var rmbHitsStream = rmbRays
+            .Select(ray => (ray, Physics.RaycastAll(ray)));
+
+        lmbHitsStream.Subscribe(hits =>
         {
             if (WeHit<ISelectable>(hits, out var selectable))
             {
                 _selectedObject.SetValue(selectable);
             }
-            else
-            {
-                _selectedObject.SetValue(null);
-            }
-        }
-        else
+        });
+        
+        rmbHitsStream.Subscribe((ray, hits) =>
         {
+            _shiftModificatorModel.IsShift = Input.GetKey(KeyCode.LeftShift);
             if (WeHit<IAttackable>(hits, out var attackable))
             {
-                if (!_autoCommand.AutoAttackUnit(_selectedObject.CurrentValue, attackable))
-                    _attackablesRMB.SetValue(attackable);
+                _attackablesRMB.SetValue(attackable);
             }
             else if (_groundPlane.Raycast(ray, out var enter))
             {
-                Vector3 newValue = ray.origin + ray.direction * enter;
-                if (_commandButtonsPresenter != null && _commandButtonsPresenter.CommandIsPending)
-                {
-                    _groundClicksRMB.SetValue(newValue);
-                }
-                else if (!_autoCommand.AutoMoveUnit(_selectedObject.CurrentValue, newValue))
-                {
-                    _groundClicksRMB.SetValue(newValue);
-                }
-                    
+                _groundClicksRMB.SetValue(ray.origin + ray.direction * enter);
             }
-        }
+        });
     }
-
+    
     private bool WeHit<T>(RaycastHit[] hits, out T result) where T : class
     {
         result = default;
