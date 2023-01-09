@@ -2,9 +2,8 @@
 
 namespace Abstractions
 {
-    public interface ISelectable : IHealthHolder
+    public interface ISelectable : IHealthHolder, IIconHolder
     {
         Transform PivotPoint { get; }
-        Sprite Icon { get; }
     }
 }
