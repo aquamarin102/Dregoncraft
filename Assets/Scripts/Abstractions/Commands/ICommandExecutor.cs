@@ -2,10 +2,9 @@
 {
     public interface ICommandExecutor
     {
-        void ExecuteCommand(object command);
-
-        bool AppendCommand(object command);
-
-        void ResetQueue();
+    }
+    
+    public interface ICommandExecutor<T> : ICommandExecutor where T : ICommand
+    {
     }
 }

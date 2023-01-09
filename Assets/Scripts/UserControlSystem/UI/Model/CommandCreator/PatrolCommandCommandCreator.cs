@@ -9,7 +9,7 @@ namespace UserControlSystem
     {
         [Inject] private SelectableValue _selectable;
 
-        public override IPatrolCommand CreateCommand(Vector3 argument) 
+        protected override IPatrolCommand CreateCommand(Vector3 argument) 
             => new PatrolCommand(_selectable.CurrentValue.PivotPoint.position, argument);
     }
 }

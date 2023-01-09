@@ -1,9 +1,11 @@
-﻿using Abstractions;
+﻿using System.Threading.Tasks;
+using Abstractions;
 using Abstractions.Commands;
 using Abstractions.Commands.CommandsInterfaces;
-using System.Threading.Tasks;
+using Assets.Scripts.Core;
 using UniRx;
 using UnityEngine;
+using Zenject;
 using Random = UnityEngine.Random;
 
 namespace Core.CommandExecutors
@@ -13,7 +15,8 @@ namespace Core.CommandExecutors
         public IReadOnlyReactiveCollection<IUnitProductionTask> Queue => _queue;
 
         [SerializeField] private Transform _unitsParent;
-        //[SerializeField] private int _maximumUnitsInQueue = 6;
+        [SerializeField] private int _maximumUnitsInQueue = 6;
+        [Inject] private DiContainer _diContainer;
 
         private ReactiveCollection<IUnitProductionTask> _queue = new ReactiveCollection<IUnitProductionTask>();
 
@@ -28,23 +31,14 @@ namespace Core.CommandExecutors
             innerTask.TimeLeft -= Time.deltaTime;
             if (innerTask.TimeLeft <= 0)
             {
-                removeTaskAtIndex(0);
-                var go = Instantiate(innerTask.UnitPrefab, new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10)), Quaternion.identity, _unitsParent);
-                ExecuteCommandToWayPoint(go);
+                RemoveTaskAtIndex(0);
+                Instantiate(innerTask.UnitPrefab, new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10)), Quaternion.identity, _unitsParent);
             }
         }
 
-        void ExecuteCommandToWayPoint(GameObject go)
-        {
-            IWayPointHolder wayPointHolder = GetComponentInChildren<IWayPointHolder>();
+        public void Cancel(int index) => RemoveTaskAtIndex(index);
 
-            if (wayPointHolder != null)
-                wayPointHolder.SentUnitToWayPoint(go);
-        }
-
-        public void Cancel(int index) => removeTaskAtIndex(index);
-
-        private void removeTaskAtIndex(int index)
+        private void RemoveTaskAtIndex(int index)
         {
             for (int i = index; i < _queue.Count - 1; i++)
             {
@@ -53,10 +47,14 @@ namespace Core.CommandExecutors
             _queue.RemoveAt(_queue.Count - 1);
         }
 
-        public override Task ExecuteSpecificCommand(IProduceUnitCommand command)
+        public override async Task ExecuteSpecificCommand(IProduceUnitCommand command)
         {
-            _queue.Add(new UnitProductionTask(command.ProductionTime, command.Icon, command.UnitPrefab, command.UnitName));
-            return Task.CompletedTask;
+            var instance = _diContainer.InstantiatePrefab(command.UnitPrefab, transform.position, Quaternion.identity, _unitsParent);
+            var queue = instance.GetComponent<ICommandsQueue>();
+            var mainBuilding = GetComponent<MainBuilding>();
+            var factionMember = instance.GetComponent<FactionMember>();
+            factionMember.SetFaction(GetComponent<FactionMember>().FactionId);
+            queue.EnqueueCommand(new MoveCommand(mainBuilding.RallyPoint));
         }
     }
 }

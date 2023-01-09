@@ -15,9 +15,7 @@ public sealed class MouseInteractionPresenter : MonoBehaviour
     [SerializeField] private Vector3Value _groundClicksRMB;
     [SerializeField] private AttackableValue _attackablesRMB;
     [SerializeField] private Transform _groundTransform;
-
-    [Inject] private ShiftModificatorModel _shiftModificatorModel;
-
+    
     private Plane _groundPlane;
 
     [Inject]
@@ -53,7 +51,6 @@ public sealed class MouseInteractionPresenter : MonoBehaviour
         
         rmbHitsStream.Subscribe((ray, hits) =>
         {
-            _shiftModificatorModel.IsShift = Input.GetKey(KeyCode.LeftShift);
             if (WeHit<IAttackable>(hits, out var attackable))
             {
                 _attackablesRMB.SetValue(attackable);

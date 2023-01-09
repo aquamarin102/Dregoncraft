@@ -9,10 +9,9 @@ namespace Core.CommandExecutors
     {
         public CancellationTokenSource CancellationTokenSource { get; set; }
 
-        public override Task ExecuteSpecificCommand(IStopCommand command)
+        public override async Task ExecuteSpecificCommand(IStopCommand command)
         {
             CancellationTokenSource?.Cancel();
-            return Task.CompletedTask;
         }
     }
 }
